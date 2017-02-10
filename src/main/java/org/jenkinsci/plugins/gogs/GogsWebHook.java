@@ -144,10 +144,10 @@ public class GogsWebHook implements UnprotectedRootAction {
           LOGGER.warning(msg);
         } else if (isNullOrEmpty(jSecret) && isNullOrEmpty(gSecret)) {
           /* No password is set in Jenkins and Gogs, run without secrets */
-          result = payloadProcessor.triggerJobs(jobName, gogsDelivery);
+          result = payloadProcessor.triggerJobs(jobName, gogsDelivery, jsonObject);
         } else if (!isNullOrEmpty(jSecret) && jSecret.equals(gSecret)) {
           /* Password is set in Jenkins and Gogs, and is correct */
-          result = payloadProcessor.triggerJobs(jobName, gogsDelivery);
+          result = payloadProcessor.triggerJobs(jobName, gogsDelivery, jsonObject);
         } else {
           /* Gogs and Jenkins secrets differs */
           result.setStatus(403, "Incorrect secret");

@@ -23,12 +23,16 @@ OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package org.jenkinsci.plugins.gogs;
 
-import java.util.logging.Logger;
-
-import hudson.model.BuildableItem;
+import hudson.model.AbstractProject;
 import hudson.model.Cause;
+import hudson.model.ParametersAction;
+import hudson.model.StringParameterValue;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
+
+import java.util.logging.Logger;
+
+import net.sf.json.JSONObject;
 
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
@@ -39,7 +43,7 @@ public class GogsPayloadProcessor {
   public GogsPayloadProcessor() {
   }
 
-  public GogsResults triggerJobs(String jobName, String deliveryID) {
+  public GogsResults triggerJobs(String jobName, String deliveryID, JSONObject payload) {
     SecurityContext saveCtx = null;
     Boolean didJob = false;
     GogsResults result = new GogsResults();
@@ -51,11 +55,17 @@ public class GogsPayloadProcessor {
       if (instance!=null) {
         ACL acl = instance.getACL();
         acl.impersonate(ACL.SYSTEM);
-        for (BuildableItem project : instance.getAllItems(BuildableItem.class)) {
+        for (AbstractProject project : instance.getAllItems(AbstractProject.class)) {
           if ( project.getName().equals(jobName) ) {
 
             Cause cause = new GogsCause(deliveryID);
-            project.scheduleBuild(0, cause);
+            project.scheduleBuild2(0, cause,
+              new ParametersAction(
+                new StringParameterValue("GOGS_REPO_SSH_URL", payload.getJSONObject("repository").getString("ssh_url")),
+                new StringParameterValue("GOGS_REPO_DEFAULT_BRANCH", payload.getJSONObject("repository").getString("default_branch")),
+                new StringParameterValue("GOGS_REPO_NAME", payload.getJSONObject("repository").getString("name"))
+              )
+            );
             didJob = true;
             result.setMessage(String.format("Job '%s' is executed",jobName));
           }
